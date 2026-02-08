@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Harvest Progress</title>
+
+<style>
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,system-ui,sans-serif;background:#f4f6f8}
+.app{max-width:420px;margin:auto;padding:16px}
+h1{text-align:center;margin-bottom:4px}
+.subtitle{text-align:center;color:#666;font-size:14px;margin-bottom:16px}
+.card{background:white;border-radius:12px;padding:16px;margin-bottom:16px}
+.highlight{text-align:center}
+.big{font-size:48px;font-weight:bold}
+.status{margin-top:8px;padding:6px 12px;border-radius:999px;display:inline-block;font-weight:600}
+.ahead{background:#e8f5e9;color:#2e7d32}
+.ontrack{background:#e3f2fd;color:#1565c0}
+.behind{background:#fdecea;color:#c62828}
+label{display:block;margin-bottom:12px}
+input{width:100%;font-size:18px;padding:8px;margin-top:4px}
+button{width:100%;padding:12px;font-size:18px;border-radius:10px;border:none;background:#2e7d32;color:white}
+ul{list-style:none;padding:0}
+li{margin-bottom:6px}
+</style>
+</head>
+
+<body>
+<div class="app">
+<h1>Harvest Progress</h1>
+<div class="subtitle">Tonnes cut, clearly</div>
+
+<div class="card highlight">
+<div class="big" id="percent">0%</div>
+<div id="tonnesCut">0 t cut</div>
+<div id="tonnesRemaining">0 t remaining</div>
+<div id="daysRemaining"></div>
+<div id="status" class="status ontrack">On track</div>
+</div>
+
+<div class="card">
+<label>Farm total (tonnes)<input id="farmTotal" type="number" value="5000"></label>
+<label>Target %<input id="targetPercent" type="number" value="35"></label>
+<label>Bin weight (tonnes)<input id="binWeight" type="number" value="4"></label>
+<label>Bins per day<input id="binsPerDay" type="number" value="25"></label>
+</div>
+
+<div class="card">
+<button onclick="addDay()">Add today’s bins</button>
+<ul id="log"></ul>
+</div>
+</div>
+
+<script>
+let data=JSON.parse(localStorage.getItem("harvestProgress"))||
+{farmTotal:5000,targetPercent:35,binWeight:4,binsPerDay:25,days:[]}
+
+function save(){localStorage.setItem("harvestProgress",JSON.stringify(data));render()}
+
+function addDay(){
+ let b=prompt("Bins cut today?")
+ if(!b)return
+ data.days.push(+b)
+ save()
+}
+
+function render(){
+ data.farmTotal=+farmTotal.value
+ data.targetPercent=+targetPercent.value
+ data.binWeight=+binWeight.value
+ data.binsPerDay=+binsPerDay.value
+
+ let bins=data.days.reduce((a,b)=>a+b,0)
+ let cut=bins*data.binWeight
+ let target=data.farmTotal*(data.targetPercent/100)
+ let remaining=Math.max(target-cut,0)
+ let percent=(cut/data.farmTotal)*100
+ let days=(target/data.binWeight-bins)/data.binsPerDay
+
+ percentEl.innerText=percent.toFixed(1)+"%"
+ tonnesCutEl.innerText=cut.toFixed(1)+" t cut"
+ tonnesRemainingEl.innerText=remaining.toFixed(1)+" t remaining"
+ daysRemainingEl.innerText=days>0?days.toFixed(1)+" days remaining":"Target reached"
+
+ let avg=bins/Math.max(data.days.length,1)
+ let s="ontrack",t="On track"
+ if(avg>data.binsPerDay*1.1){s="ahead";t="Ahead"}
+ if(avg<data.binsPerDay*0.9){s="behind";t="Behind"}
+ statusEl.className="status "+s
+ statusEl.innerText=t
+
+ log.innerHTML=""
+ data.days.forEach((d,i)=>{
+  log.innerHTML+=`<li>Day ${i+1}: ${d} bins (${d*data.binWeight} t)</li>`
+ })
+}
+
+const percentEl=percent
+const tonnesCutEl=tonnesCut
+const tonnesRemainingEl=tonnesRemaining
+const daysRemainingEl=daysRemaining
+const statusEl=status
+
+document.querySelectorAll("input").forEach(i=>i.oninput=save)
+render()
+</script>
+</body>
+</html>
